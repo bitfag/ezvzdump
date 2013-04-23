@@ -147,7 +147,6 @@ fi
 # Make sure required variables are set
 [ -d "${VZ_CONF}" ]    || die "\$VZ_CONF directory doesn't exist. ($VZ_CONF)"
 [ -d "${VZ_PRIVATE}" ] || die "\$VZ_PRIVATE directory doesn't exist. ($VZ_PRIVATE)"
-[ -d "${LOCAL_DIR}" ]  || die "\$LOCAL_DIR directory doesn't exist. ($LOCAL_DIR)"
 [ -n "${DEFAULT_BACKUP_SET}" ]  || die "\$DEFAULT_BACKUP_SET not set." 
 [ -n "${DEFAULT_ROTATION}" ]  || die "\$DEFAULT_ROTATION not set." 
 [ -n "${VEIDS_DEFAULT}" ]  || die "\$VEIDS_DEFAULT not set." 
@@ -209,9 +208,11 @@ for VEID in $VEIDS; do
     RSYNC+=" --exclude=${VEID}${path}"
   done;
 
-  e "Commencing initial ${RSYNC} ${VZ_PRIVATE}${VEID} ${LOCAL_DIR}"
   [ ! -d "${VZ_PRIVATE}${VEID}" ] && die "\$VZ_PRIVATE\$VEID directory doesn't exist. (${VZ_PRIVATE}${VEID})"
-  ${RSYNC} ${VZ_PRIVATE}${VEID} ${LOCAL_DIR} | count_lines "Files locally transfered"
+  if [ -n "${REMOTE_HOST}" ] && [ -n "${REMOTE_DIR}" ]; then
+    e "Commencing initial remote ${RSYNC} ${VZ_PRIVATE}${VEID} ${REMOTE_USER:+$REMOTE_USER@}${REMOTE_HOST}:${REMOTE_DIR}${VEID}"
+    ${RSYNC} ${VZ_PRIVATE}${VEID}/ ${REMOTE_USER:+$REMOTE_USER@}${REMOTE_HOST}:${REMOTE_DIR}${VEID}/ | count_lines "Files transfered"
+  fi
 
   #phase2, checkpoint the container and sync
   #suspend
@@ -254,8 +255,8 @@ for VEID in $VEIDS; do
             mount ${LVM_DEVICES_PATH}/${LVM_GROUP}/${snapshot_device_name} ${mountpoint}
             log "mounted ${snapshot_device} on ${mountpoint}" $?
             VZ_SNAPSHOT_PRIVATE="${mountpoint}${VZ_PRIVATE#${LVM_MOUNTPOINT}}"
-            log "initiating second phase rsync from ${VZ_SNAPSHOT_PRIVATE}${VEID} to ${LOCAL_DIR}"
-            ${RSYNC} ${VZ_SNAPSHOT_PRIVATE}${VEID} ${LOCAL_DIR} | count_lines "Files locally transfered"
+            log "initiating second phase rsync from ${VZ_SNAPSHOT_PRIVATE}${VEID} to remote ${REMOTE_DIR}"
+            ${RSYNC} ${VZ_SNAPSHOT_PRIVATE}${VEID} ${REMOTE_USER:+$REMOTE_USER@}${REMOTE_HOST}:${REMOTE_DIR} | count_lines "Files remotely transfered"
             log "rsync finished." $? 
             umount ${mountpoint}
             log "umounted ${mountpoint}" $?
@@ -264,7 +265,7 @@ for VEID in $VEIDS; do
         fi
     else
         log "initiating second phase rsync" 
-        ${RSYNC} ${VZ_PRIVATE}${VEID} ${LOCAL_DIR} | count_lines "Files locally transfered"
+        ${RSYNC} ${VZ_PRIVATE}${VEID} ${REMOTE_USER:+$REMOTE_USER@}${REMOTE_HOST}:${REMOTE_DIR} | count_lines "Files remotely transfered"
         log "rsync finished." $? 
 
         ${VZCTL} chkpnt $VEID --resume
@@ -279,26 +280,23 @@ for VEID in $VEIDS; do
   fi
 
   # Copy VE config files over into the VE storage/cache area
-  if [ ! -d "${LOCAL_DIR}${VEID}/etc/vzdump" ]; then
-    e "Creating directory for openvz config files: mkdir ${LOCAL_DIR}${VEID}/etc/vzdump"
-    mkdir ${LOCAL_DIR}${VEID}/etc/vzdump
-  fi
+  e "Creating directory for openvz config files: mkdir ${REMOTE_DIR}${VEID}/etc/vzdump"
+  remote_execute "${REMOTE_USER:+$REMOTE_USER@}${REMOTE_HOST}" "[ ! -d "${REMOTE_DIR}${VEID}/etc/vzdump" ] &&
+  mkdir ${REMOTE_DIR}${VEID}/etc/vzdump"
 
-  e "Copying main config file: cp ${VZ_CONF}${VEID}.conf ${LOCAL_DIR}${VEID}/etc/vzdump/vps.conf"
+  e "Copying main config file: cp ${VZ_CONF}${VEID}.conf ${REMOTE_DIR}${VEID}/etc/vzdump/vps.conf"
   [ ! -f "${VZ_CONF}${VEID}.conf" ] && die "Unable to find ${VZ_CONF}${VEID}.conf"
-  cp ${VZ_CONF}${VEID}.conf ${LOCAL_DIR}${VEID}/etc/vzdump/vps.conf
+  ${RSYNC} ${VZ_CONF}${VEID}.conf ${REMOTE_USER:+$REMOTE_USER@}${REMOTE_HOST}:${REMOTE_DIR}${VEID}/etc/vzdump/vps.conf
 
   for ext in start stop mount umount; do
     if [ -f "${VZ_CONF}${VEID}.${ext}" ]; then
-      e "Copying other config file: cp ${VZ_CONF}${VEID}.${ext} ${LOCAL_DIR}${VEID}/etc/vzdump/vps.${ext}"
-      cp ${VZ_CONF}${VEID}.${ext} ${LOCAL_DIR}${VEID}/etc/vzdump/vps.${ext}
+      e "Copying other config file: cp ${VZ_CONF}${VEID}.${ext} ${REMOTE_DIR}${VEID}/etc/vzdump/vps.${ext}"
+      ${RSYNC} ${VZ_CONF}${VEID}.${ext} ${REMOTE_DIR}${VEID}/etc/vzdump/vps.${ext}
     fi
   done;
 
   # Run the remote rsync
   if [ -n "${REMOTE_HOST}" ] && [ -n "${REMOTE_DIR}" ]; then
-    e "Commencing remote ${RSYNC} ${LOCAL_DIR}${VEID} ${REMOTE_USER:+$REMOTE_USER@}${REMOTE_HOST}:${REMOTE_DIR}${VEID}"
-    ${RSYNC} ${LOCAL_DIR}${VEID}/ ${REMOTE_USER:+$REMOTE_USER@}${REMOTE_HOST}:${REMOTE_DIR}${VEID}/ | count_lines "Files transfered"
 
     #rotate previous remote backups
     e "rotating up to $ROTATION backups"
@@ -316,7 +314,7 @@ for VEID in $VEIDS; do
         e "making remote gzipped tar in backgound, no feedback"
         remote_execute "${REMOTE_USER:+$REMOTE_USER@}${REMOTE_HOST}" "tar czf ${REMOTE_DIR}${VEID}.${BACKUP_SET}.0.tar.gz --numeric-owner -C ${REMOTE_DIR}${VEID} ./ 2>/dev/null " &
       else
-      TOTAL_LINES=`find ${LOCAL_DIR}/${VEID} | wc -l`
+      TOTAL_LINES=`remote_execute "${REMOTE_USER:+$REMOTE_USER@}${REMOTE_HOST}" "find ${REMOTE_DIR}/${VEID} | wc -l"`
     e "making remote gzipped tar backup"
     #run in foreground, percent feedback
         remote_execute "${REMOTE_USER:+$REMOTE_USER@}${REMOTE_HOST}" "tar cvzf ${REMOTE_DIR}${VEID}.${BACKUP_SET}.0.tar.gz --numeric-owner -C ${REMOTE_DIR}${VEID} ./ 2>/dev/null" | count_lines "files archived" "${TOTAL_LINES}"
