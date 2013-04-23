@@ -242,11 +242,6 @@ for VEID in $VEIDS; do
 
   # If the VE is running, suspend, re-rsync and then resume it ...
   if [ -n "$(${VZCTL} status ${VEID} | grep running)" ]; then
-
-    e "About to suspend VEID: $VEID"
-    sleep 3
-    before="$(date +%s)"
-    ${VZCTL} chkpnt $VEID --suspend
     
     if [ -n "${LVM}" -a -b "${LVM_DEVICES_PATH}/${LVM_GROUP}/${LVM_VOLUME}" ]; then
         log "using lvm snapshots"
@@ -256,11 +251,6 @@ for VEID in $VEIDS; do
         snap_return_status="$?"
         log "${snap_output}"
         log "created device ${snapshot_device_name}" ${snap_return_status}
-        ${VZCTL} chkpnt $VEID --resume
-            log "Resumed VEID: $VEID" $?
-        after="$(date +%s)"
-        elapsed_seconds="$(expr $after - $before)"
-        log "Container ${VEID} ($VEHOSTNAME) was down $elapsed_seconds seconds during backup process." 
         if [ "${snap_return_status}" -ne "0" ]; then
             log "Failed to create snapshot from ${LVM_DEVICES_PATH}/${LVM_GROUP}/${LVM_VOLUME}" "${snap_output}"
             log "### Skipping backup for VEID: ${VEID}"
@@ -281,6 +271,11 @@ for VEID in $VEIDS; do
             log "removed lvm snapshot ${snapshot_device_name}" $?
         fi
     else
+        e "About to suspend VEID: $VEID"
+        sleep 3
+        before="$(date +%s)"
+        ${VZCTL} chkpnt $VEID --suspend
+
         log "initiating second phase rsync" 
         ${RSYNC} ${VZ_PRIVATE}${VEID} ${REMOTE_USER:+$REMOTE_USER@}${REMOTE_HOST}:${REMOTE_DIR} | count_lines "Files remotely transfered"
         log "rsync finished." $? 
