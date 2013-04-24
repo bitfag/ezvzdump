@@ -297,7 +297,7 @@ for VEID in $VEIDS; do
     #rotate previous remote backups
     e "rotating up to $ROTATION backups"
     for ROT in `seq $((ROTATION-1)) -1 0`; do
-      remote_execute "${REMOTE_USER:+$REMOTE_USER@}${REMOTE_HOST}" "[ -f ${REMOTE_DIR}${VEID}.${BACKUP_SET}${ROT}.tar.gz ] && mv -f ${REMOTE_DIR}${VEID}.${ROT}.tar.gz ${REMOTE_DIR}${VEID}.${BACKUP_SET}.$((ROT+1)).tar.gz"
+      remote_execute "${REMOTE_USER:+$REMOTE_USER@}${REMOTE_HOST}" "[ -f ${REMOTE_DIR}${VEID}.${BACKUP_SET}.${ROT}.tar.gz ] && mv -f ${REMOTE_DIR}${VEID}.${BACKUP_SET}.${ROT}.tar.gz ${REMOTE_DIR}${VEID}.${BACKUP_SET}.$((ROT+1)).tar.gz"
       if [ "$?" -eq 0 ]; then
         e "rotated backup ${ROT}"
       else
