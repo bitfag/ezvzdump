@@ -308,12 +308,19 @@ for VEID in $VEIDS; do
       if [ "${CONCURRENT_JOBS}" = "true" ]; then
     #run in background, no feedback
         e "making remote gzipped tar in backgound, no feedback"
-        remote_execute "${REMOTE_USER:+$REMOTE_USER@}${REMOTE_HOST}" "tar czf ${REMOTE_DIR}${VEID}.${BACKUP_SET}.0.tar.gz --numeric-owner -C ${REMOTE_DIR}${VEID} ./ 2>/dev/null " &
+        if [ x"${KEEP_REMOTE}" = x"true" ]; then
+          remote_execute "${REMOTE_USER:+$REMOTE_USER@}${REMOTE_HOST}" "tar czf ${REMOTE_DIR}${VEID}.${BACKUP_SET}.0.tar.gz --numeric-owner -C ${REMOTE_DIR}${VEID} ./ 2>/dev/null" &
+        else
+          remote_execute "${REMOTE_USER:+$REMOTE_USER@}${REMOTE_HOST}" "tar czf ${REMOTE_DIR}${VEID}.${BACKUP_SET}.0.tar.gz --numeric-owner -C ${REMOTE_DIR}${VEID} ./ 2>/dev/null && rm -rf ${REMOTE_DIR}${VEID}" &
+        fi
       else
       TOTAL_LINES=`remote_execute "${REMOTE_USER:+$REMOTE_USER@}${REMOTE_HOST}" "find ${REMOTE_DIR}/${VEID} | wc -l"`
     e "making remote gzipped tar backup"
     #run in foreground, percent feedback
         remote_execute "${REMOTE_USER:+$REMOTE_USER@}${REMOTE_HOST}" "tar cvzf ${REMOTE_DIR}${VEID}.${BACKUP_SET}.0.tar.gz --numeric-owner -C ${REMOTE_DIR}${VEID} ./ 2>/dev/null" | count_lines "files archived" "${TOTAL_LINES}"
+        if [ x"${KEEP_REMOTE}" != x"true" ]; then
+          remote_execute "${REMOTE_USER:+$REMOTE_USER@}${REMOTE_HOST}" "rm -rf ${REMOTE_DIR}${VEID}"
+        fi
       fi
   fi
 
