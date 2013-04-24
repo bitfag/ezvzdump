@@ -320,6 +320,7 @@ for VEID in $VEIDS; do
   e "Done."
 
   #add current veid to state file for future resumes.
+  [ -d "${STATE_DIR}" ] || mkdir -p "${STATE_DIR}"
   echo "$VEID" >> "$STATE_FILE"
 
 done;
