@@ -1,5 +1,6 @@
 #!/bin/bash
 
+# vim: set ts=2 expandtab :
 # usage: ezvzdump [-c config_file ] [ -s backup_set]
 
 
