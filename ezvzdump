@@ -114,6 +114,27 @@ function remote_execute() {
     ssh $1 ${REMOTE_NICE:-} ${REMOTE_IONICE:-} $2
 }
 
+cleanup_handler()
+{
+  trap - EXIT
+  if [ -n "${LVM}" -a -n "${mountpoint}" ]; then
+    umount ${mountpoint}
+    lvremove -f ${LVM_GROUP}/${snapshot_device_name}
+  fi
+  exit "$@"
+}
+
+exit_handler()
+{
+  cleanup_handler $?
+}
+
+signal_handler()
+{
+  cleanup_handler 143
+}
+
+
 #default config file
 CONFIG_FILE="./ezvzdump.conf"
 
@@ -187,7 +208,9 @@ else
   log "None Found."
 fi
   
-
+# install signal handler
+trap exit_handler EXIT
+trap signal_handler HUP PIPE INT QUIT TERM
 
 for VEID in $VEIDS; do
 
