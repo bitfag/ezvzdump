@@ -130,6 +130,10 @@ cleanup_handler()
   if [ -n "${LVM}" -a -n "${mountpoint}" ]; then
     umount_actions
   fi
+  #cleanup temporary files
+  rm ${LOG_FILE}
+  #cleanup pid file
+  rm ${PID_FILE}
   exit "$@"
 }
 
@@ -383,11 +387,4 @@ email_file ${LOG_FILE}
 #print log file
 echo
 cat ${LOG_FILE}
-
-#cleanup temporary files
-rm ${LOG_FILE}
-
-#cleanup pid file
-rm ${PID_FILE}
-
 
