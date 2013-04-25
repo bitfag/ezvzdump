@@ -110,6 +110,15 @@ function check_only_instance() {
   return 0
 }
 
+function umount_actions() {
+  umount ${mountpoint}
+  log "umounted ${mountpoint}" $?
+  [ "$(ls -A ${mountpoint})" ] || rm -rf "${mountpoint}"
+  lvremove -f ${LVM_GROUP}/${snapshot_device_name}
+  log "removed lvm snapshot ${snapshot_device_name}" $?
+  unset mountpoint
+}
+
 function remote_execute() {
     ssh $1 ${REMOTE_NICE:-} ${REMOTE_IONICE:-} $2
 }
@@ -117,9 +126,9 @@ function remote_execute() {
 cleanup_handler()
 {
   trap - EXIT
+  # umount lvm snapshot and remove it
   if [ -n "${LVM}" -a -n "${mountpoint}" ]; then
-    umount ${mountpoint}
-    lvremove -f ${LVM_GROUP}/${snapshot_device_name}
+    umount_actions
   fi
   exit "$@"
 }
@@ -281,11 +290,7 @@ for VEID in $VEIDS; do
             log "initiating second phase rsync from ${VZ_SNAPSHOT_PRIVATE}${VEID} to remote ${REMOTE_DIR}"
             ${RSYNC} ${VZ_SNAPSHOT_PRIVATE}${VEID} ${REMOTE_USER:+$REMOTE_USER@}${REMOTE_HOST}:${REMOTE_DIR} | count_lines "Files remotely transfered"
             log "rsync finished." $? 
-            umount ${mountpoint}
-            log "umounted ${mountpoint}" $?
-            lvremove -f ${LVM_GROUP}/${snapshot_device_name}
-            log "removed lvm snapshot ${snapshot_device_name}" $?
-            unset mountpoint
+            umount_actions
         fi
     else
         e "About to suspend VEID: $VEID"
