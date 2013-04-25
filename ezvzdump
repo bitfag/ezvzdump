@@ -285,6 +285,7 @@ for VEID in $VEIDS; do
             log "umounted ${mountpoint}" $?
             lvremove -f ${LVM_GROUP}/${snapshot_device_name}
             log "removed lvm snapshot ${snapshot_device_name}" $?
+            unset mountpoint
         fi
     else
         e "About to suspend VEID: $VEID"
