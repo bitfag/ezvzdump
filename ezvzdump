@@ -136,7 +136,11 @@ signal_handler()
 
 
 #default config file
-CONFIG_FILE="./ezvzdump.conf"
+if [ -f "./ezvzdump.conf" ]; then
+  CONFIG_FILE="./ezvzdump.conf"
+else
+  CONFIG_FILE="/etc/ezvzdump.conf"
+fi
 
 #read command line arguments
 while [ $# -gt 0 ]
