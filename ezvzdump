@@ -236,22 +236,10 @@ for VEID in $VEIDS; do
     RSYNC+=" --exclude=${VEID}${path}"
   done;
 
-  # Copy VE config files over into the VE storage/cache area
-  e "Creating directory for openvz config files: mkdir ${REMOTE_DIR}${VEID}/etc/vzdump"
-  remote_execute "${REMOTE_USER:+$REMOTE_USER@}${REMOTE_HOST}" "[ ! -d "${REMOTE_DIR}${VEID}/etc/vzdump" ] &&
-  mkdir -p ${REMOTE_DIR}${VEID}/etc/vzdump"
-
-  e "Copying main config file: cp ${VZ_CONF}${VEID}.conf ${REMOTE_DIR}${VEID}/etc/vzdump/vps.conf"
-  [ ! -f "${VZ_CONF}${VEID}.conf" ] && die "Unable to find ${VZ_CONF}${VEID}.conf"
-  ${RSYNC} ${VZ_CONF}${VEID}.conf ${REMOTE_USER:+$REMOTE_USER@}${REMOTE_HOST}:${REMOTE_DIR}${VEID}/etc/vzdump/vps.conf
-
-  for ext in start stop mount umount; do
-    if [ -f "${VZ_CONF}${VEID}.${ext}" ]; then
-      e "Copying other config file: cp ${VZ_CONF}${VEID}.${ext} ${REMOTE_DIR}${VEID}/etc/vzdump/vps.${ext}"
-      ${RSYNC} ${VZ_CONF}${VEID}.${ext} ${REMOTE_DIR}${VEID}/etc/vzdump/vps.${ext}
-    fi
-  done;
-
+  # Make sure we have needed remote dirs
+  e "Creating directory for openvz private area: mkdir ${REMOTE_DIR}${VEID}/etc/vzdump"
+  remote_execute "${REMOTE_USER:+$REMOTE_USER@}${REMOTE_HOST}" "[ ! -d \"${REMOTE_DIR}${VEID}\" ] &&
+  mkdir -p ${REMOTE_DIR}${VEID}"
 
   [ ! -d "${VZ_PRIVATE}${VEID}" ] && die "\$VZ_PRIVATE\$VEID directory doesn't exist. (${VZ_PRIVATE}${VEID})"
   if [ -n "${REMOTE_HOST}" ] && [ -n "${REMOTE_DIR}" ]; then
@@ -319,7 +307,24 @@ for VEID in $VEIDS; do
     log  "### Skipping suspend/re-rsync/resume, as the VEID: ${VEID} is not curently running."
   fi
 
-  # Run the remote rsync
+  # Copy VE config files over into the VE storage/cache area
+  e "Creating directory for openvz config files: mkdir ${REMOTE_DIR}${VEID}/etc/vzdump"
+  remote_execute "${REMOTE_USER:+$REMOTE_USER@}${REMOTE_HOST}" "[ ! -d \"${REMOTE_DIR}${VEID}/etc/vzdump\" ] &&
+  mkdir -p ${REMOTE_DIR}${VEID}/etc/vzdump"
+
+  e "Copying main config file: cp ${VZ_CONF}${VEID}.conf ${REMOTE_USER:+$REMOTE_USER@}${REMOTE_HOST}${REMOTE_DIR}${VEID}/etc/vzdump/vps.conf"
+  [ ! -f "${VZ_CONF}${VEID}.conf" ] && die "Unable to find ${VZ_CONF}${VEID}.conf"
+  ${RSYNC} ${VZ_CONF}${VEID}.conf ${REMOTE_USER:+$REMOTE_USER@}${REMOTE_HOST}:${REMOTE_DIR}${VEID}/etc/vzdump/vps.conf
+
+  for ext in start stop mount umount; do
+    if [ -f "${VZ_CONF}${VEID}.${ext}" ]; then
+      e "Copying other config file: cp ${VZ_CONF}${VEID}.${ext} ${REMOTE_DIR}${VEID}/etc/vzdump/vps.${ext}"
+      ${RSYNC} ${VZ_CONF}${VEID}.${ext} ${REMOTE_DIR}${VEID}/etc/vzdump/vps.${ext}
+    fi
+  done;
+
+
+  # Run the remote actions
   if [ -n "${REMOTE_HOST}" ] && [ -n "${REMOTE_DIR}" ]; then
 
     #rotate previous remote backups
