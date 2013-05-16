@@ -385,4 +385,4 @@ rm "$STATE_FILE"
 
 
 # email log file
-email_file ${LOG_FILE}
+[ x"${ENABLE_EMAIL_REPORTS}" = x"true" ] && email_file ${LOG_FILE}
