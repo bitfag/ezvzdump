@@ -190,9 +190,22 @@ fi
 [ -n "${DEFAULT_ROTATION}" ]  || die "\$DEFAULT_ROTATION not set." 
 [ -n "${VEIDS_DEFAULT}" ]  || die "\$VEIDS_DEFAULT not set." 
 
-#setup backup_set and rotation
+
+#setup backup_set
 [ -n "${BACKUP_SET}" ] ||  BACKUP_SET=${DEFAULT_BACKUP_SET}
 BACKUP_SET=`toUpper ${BACKUP_SET}`
+DEFAULT_BACKUP_SET_UPPER=`toUpper ${DEFAULT_BACKUP_SET}`
+
+# Get all ids from another backup sets to form an exclude list if we're running with default backup set
+if [ "${BACKUP_SET}" = "${DEFAULT_BACKUP_SET_UPPER}" ]; then
+  for var in ${!VEIDS_*}; do
+    [ x$var = xVEIDS_${BACKUP_SET} ] && continue
+    eval v=\${$var}
+    exclude_ids+=" $v"
+  done
+fi
+
+# setup rotation
 eval ROTATION=\${${BACKUP_SET}_ROTATION}
 isNumber $ROTATION || die "Invalid Rotation Value for '${BACKUP_SET}' backup set: '$ROTATION', check configuration file."; 
 
@@ -230,6 +243,12 @@ trap exit_handler EXIT
 trap signal_handler HUP PIPE INT QUIT TERM
 
 for VEID in $VEIDS; do
+
+  # Skip backing up VEID whether it's defined in another backup set
+  if inList "$VEID" "$exclude_ids"; then
+      log "$VEID is defined in another backup set, skipping"
+      continue
+  fi
 
   if [ -n "$ALREADY_DONE" ]; then
       if inList "$VEID" "$ALREADY_DONE"; then 
