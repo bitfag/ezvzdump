@@ -249,6 +249,9 @@ for VEID in $VEIDS; do
     RSYNC+=" --exclude=${VEID}${path}"
   done;
 
+  # Make rsync unattended
+  export RSYNC_RSH="ssh -o StrictHostKeyChecking=no -o CheckHostIP=no -o UserKnownHostsFile=/dev/null"
+
   # Make sure we have needed remote dirs
   e "Creating directory for openvz private area: mkdir ${REMOTE_DIR}${VEID}/etc/vzdump"
   remote_execute "${REMOTE_USER:+$REMOTE_USER@}${REMOTE_HOST}" "[ ! -d \"${REMOTE_DIR}${VEID}\" ] &&
@@ -383,8 +386,3 @@ rm "$STATE_FILE"
 
 # email log file
 email_file ${LOG_FILE}
-
-#print log file
-echo
-cat ${LOG_FILE}
-
