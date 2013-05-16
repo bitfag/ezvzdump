@@ -252,12 +252,14 @@ for VEID in $VEIDS; do
   # Make rsync unattended
   export RSYNC_RSH="ssh -o StrictHostKeyChecking=no -o CheckHostIP=no -o UserKnownHostsFile=/dev/null"
 
+  # Check that we have such VE
+  [ ! -d "${VZ_PRIVATE}${VEID}" ] && die "\$VZ_PRIVATE\$VEID directory doesn't exist. (${VZ_PRIVATE}${VEID})"
+
   # Make sure we have needed remote dirs
   e "Creating directory for openvz private area: mkdir ${REMOTE_DIR}${VEID}/etc/vzdump"
   remote_execute "${REMOTE_USER:+$REMOTE_USER@}${REMOTE_HOST}" "[ ! -d \"${REMOTE_DIR}${VEID}\" ] &&
   mkdir -p ${REMOTE_DIR}${VEID}"
 
-  [ ! -d "${VZ_PRIVATE}${VEID}" ] && die "\$VZ_PRIVATE\$VEID directory doesn't exist. (${VZ_PRIVATE}${VEID})"
   if [ -n "${REMOTE_HOST}" ] && [ -n "${REMOTE_DIR}" ]; then
     e "Commencing initial remote ${RSYNC} ${VZ_PRIVATE}${VEID} ${REMOTE_USER:+$REMOTE_USER@}${REMOTE_HOST}:${REMOTE_DIR}${VEID}"
     ${RSYNC} ${VZ_PRIVATE}${VEID}/ ${REMOTE_USER:+$REMOTE_USER@}${REMOTE_HOST}:${REMOTE_DIR}${VEID}/ | count_lines "Files transfered"
