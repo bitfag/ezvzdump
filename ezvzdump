@@ -272,7 +272,10 @@ for VEID in $VEIDS; do
   export RSYNC_RSH="ssh -o StrictHostKeyChecking=no -o CheckHostIP=no -o UserKnownHostsFile=/dev/null"
 
   # Check that we have such VE
-  [ ! -d "${VZ_PRIVATE}${VEID}" ] && die "\$VZ_PRIVATE\$VEID directory doesn't exist. (${VZ_PRIVATE}${VEID})"
+  if [ ! -d "${VZ_PRIVATE}${VEID}" ]; then
+    log "\$VZ_PRIVATE\$VEID directory doesn't exist. (${VZ_PRIVATE}${VEID}), skipping"
+    continue
+  fi
 
   # Make sure we have needed remote dirs
   e "Creating directory for openvz private area: mkdir ${REMOTE_DIR}${VEID}/etc/vzdump"
