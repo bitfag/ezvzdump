@@ -265,14 +265,14 @@ for VEID in $VEIDS; do
   # Build up the --exclude string for the rsync command
   RSYNC="${RSYNC_DEFAULT}"
   for path in $RSYNC_EXCLUDE; do
-    RSYNC+=" --exclude=${VEID}${path}"
+    RSYNC+=" --exclude=${path}"
   done;
 
   # Add custom --excludes
   eval e=\${EXCLUDE_${VEID}}
   if [ -n "${e}" ]; then
     for path in ${e}; do
-      RSYNC+=" --exclude=${VEID}${path}"
+      RSYNC+=" --exclude=${path}"
     done
   fi
 
