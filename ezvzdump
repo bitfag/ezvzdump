@@ -97,6 +97,8 @@ function count_lines() {
 
 function check_only_instance() {
   # Check no other instance of this script is running
+  # Use separate pidfiles for each backup set to allow parallel execution of different sets
+  PID_FILE=${PID_FILE}.$BACKUP_SET
   if [ -e $PID_FILE ]; then
     pid=`cat ${PID_FILE}`
     if kill -0 ${pid} > /dev/null 2>&1; then
