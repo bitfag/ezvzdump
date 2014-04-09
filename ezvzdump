@@ -415,7 +415,7 @@ done;
 log "`hostname` - VZ backup for containers $VEIDS complete!" 
 
 #all backups finished, delete STATE_FILE for this backup set.
-rm "$STATE_FILE"
+rm -f "$STATE_FILE"
 
 
 # email log file
