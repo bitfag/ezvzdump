@@ -313,7 +313,11 @@ for VEID in $VEIDS; do
         log "using lvm snapshots"
         snapshot_device_name="ezvzdump-"`date +%Y%m%d%H%M%s`
         log "about to create snapshot ${snapshot_device_name}"
-        snap_output=`lvcreate -s -L ${LVM_SNAPSHOT_SIZE} -n ${snapshot_device_name} "${LVM_DEVICES_PATH}/${LVM_GROUP}/${LVM_VOLUME}"`
+        if [ -n "${LVM_SNAPSHOT_SIZE}" ]; then
+                snap_output=`lvcreate -s -L ${LVM_SNAPSHOT_SIZE} -n ${snapshot_device_name} "${LVM_DEVICES_PATH}/${LVM_GROUP}/${LVM_VOLUME}"`
+        else
+                snap_output=`lvcreate -s -l 100%FREE -n ${snapshot_device_name} "${LVM_DEVICES_PATH}/${LVM_GROUP}/${LVM_VOLUME}"`
+        fi
         snap_return_status="$?"
         log "${snap_output}"
         log "created device ${snapshot_device_name}" ${snap_return_status}
