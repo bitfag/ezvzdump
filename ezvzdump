@@ -370,7 +370,7 @@ for VEID in $VEIDS; do
   for ext in start stop mount umount; do
     if [ -f "${VZ_CONF}${VEID}.${ext}" ]; then
       e "Copying other config file: cp ${VZ_CONF}${VEID}.${ext} ${REMOTE_DIR}${VEID}/etc/vzdump/vps.${ext}"
-      ${RSYNC} ${VZ_CONF}${VEID}.${ext} ${REMOTE_DIR}${VEID}/etc/vzdump/vps.${ext}
+      ${RSYNC} ${VZ_CONF}${VEID}.${ext} ${REMOTE_USER:+$REMOTE_USER@}${REMOTE_HOST}:${REMOTE_DIR}${VEID}/etc/vzdump/vps.${ext}
     fi
   done;
 
