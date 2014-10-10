@@ -302,7 +302,7 @@ for VEID in $VEIDS; do
   #if lvm:
   #  take snapshot
   #  mount snapshot
-  #  rsysnc snaphot
+  #  rsync snaphot
   #else:
   #  rsync vz directory
 
@@ -313,6 +313,13 @@ for VEID in $VEIDS; do
         log "using lvm snapshots"
         snapshot_device_name="ezvzdump-"`date +%Y%m%d%H%M%s`
         log "about to create snapshot ${snapshot_device_name}"
+        # wait for "Free PE" in volume group
+        FREE="0"
+        while [ "${FREE}" -eq 0 ]; do
+                FREE="$(vgs --noheadings --units b --nosuffix -o free ${LVM_GROUP} | sed 's/[[:blank:]]//g')"
+                [ "$FREE" -eq 0 ] || break
+                sleep 300
+        done
         if [ -n "${LVM_SNAPSHOT_SIZE}" ]; then
                 snap_output=`lvcreate -s -L ${LVM_SNAPSHOT_SIZE} -n ${snapshot_device_name} "${LVM_DEVICES_PATH}/${LVM_GROUP}/${LVM_VOLUME}"`
         else
