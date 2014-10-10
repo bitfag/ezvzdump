@@ -333,7 +333,7 @@ for VEID in $VEIDS; do
             log "mounted ${snapshot_device} on ${mountpoint}" $?
             VZ_SNAPSHOT_PRIVATE="${mountpoint}${VZ_PRIVATE#${LVM_MOUNTPOINT}}"
             log "initiating second phase rsync from ${VZ_SNAPSHOT_PRIVATE}${VEID} to remote ${REMOTE_DIR}"
-            ${RSYNC} ${VZ_SNAPSHOT_PRIVATE}${VEID} ${REMOTE_USER:+$REMOTE_USER@}${REMOTE_HOST}:${REMOTE_DIR} | count_lines "Files remotely transfered"
+            ${RSYNC} ${VZ_SNAPSHOT_PRIVATE}${VEID}/ ${REMOTE_USER:+$REMOTE_USER@}${REMOTE_HOST}:${REMOTE_DIR}${VEID}/ | count_lines "Files remotely transfered"
             log "rsync finished." $? 
             umount_actions
         fi
